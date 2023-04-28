@@ -90,8 +90,8 @@ def alta_registro(fecha, modelo, cantidad, treeview):
 def modificar_registro(mod_tree):
     """Trae la info de seleccion, prepara los input para completar la modificacion."""
     if mod_tree.selection():
-        boton_modificar.grid_forget()
-        boton_guardar.grid(row=6, column=2, pady=7, padx=7)
+        
+        
         valor = mod_tree.selection()
         item = mod_tree.item(valor)
         mi_id = item['text']
@@ -100,17 +100,19 @@ def modificar_registro(mod_tree):
         sql_consulta_id = "SELECT id, fecha, modelo, cantidad FROM produccion WHERE id = ?"
         consulta = cursor.execute(sql_consulta_id, data)
         registro = consulta.fetchone()
+        #convierto a lista para poder modificar la fecha a ortodoxa
+        registro1 = list(registro)
+        #aplico funcion
+        registro1[1] = fecha_ortodoxa(registro1[1])
+        #vuelvo a pasar a Tupla
+        registro = tuple(registro1)
+        
         connection.commit()
         
-        fecha_input.insert(0,registro[1])
-        modelo_input.insert(0,registro[2])
-        cantidad_input.delete(0,'end')
-        cantidad_input.insert(0,registro[3])
-
         return registro
     
     else:
-        return ('Información erronea. Seleccion', 'Debe seleccionar un registro para modificarlo.')
+        return None
 
 def guardar_registro(fecha, modelo, cantidad, mod_tree):
     """Realiza el guardado de un registro de produccion en la BD (modificacion de existente)"""
@@ -124,22 +126,22 @@ def guardar_registro(fecha, modelo, cantidad, mod_tree):
     # valida la fecha segun regex (dd/mm/aaaa). Si hace match, entoces realiza el upadte. Else: envia mensaje warning
     if valida_fecha(patron_fecha, fecha):
         
-        data = (fecha, modelo, cantidad, mi_id)
+        data = (formatea_fecha(fecha), modelo, cantidad, mi_id)
         sql = "UPDATE produccion SET fecha=?, modelo=?, cantidad=? WHERE id = ?;"
         cursor.execute(sql, data)
         connection.commit()
         global label_aviso_mod
-        label_aviso_mod = ttk.Label(text='Registro Modificado', background= '#5391BD', foreground= 'white')
-        label_aviso_mod.grid(row = 1, column=0, columnspan=6, sticky='E', pady=20)
+        #esto lo modifico despues
+        #label_aviso_mod = ttk.Label(text='Registro Modificado', background= '#5391BD', foreground= 'white')
+        #label_aviso_mod.grid(row = 1, column=0, columnspan=6, sticky='E', pady=20)
 
         actualizar_tree(mod_tree)
-
-        boton_guardar.grid_forget()
-        boton_modificar.grid(row=6, column=2, pady=7, padx=7)
-
         print(f'Modificacion --> Fecha: {fecha}, Modelo: {modelo}, Cantidad: {cantidad}')
+        return 'guardado'
+        
     else:
-        messagebox.showwarning('Información erronea. Campo Fecha', 'El campo fecha debe ser del modelo dd/mm/aaaa.')
+        return False
+        
     
 
 def consultar_registros():
@@ -158,39 +160,34 @@ def exportar_registros():
         for registro in consultar_registros():
             registros.write(f'{registro[0]} |  {fecha_ortodoxa(registro[1])}  |  {registro[2]}  |    {registro[3]}    |\n' )
 
-def eliminar_registro(del_tree):
+def desea_eliminar(del_tree):
     """Elimina un registro elegido desde el treeview"""
 
     if del_tree.selection():
-        opcion = messagebox.askyesno('Desea continuar?', '¿Está seguro de eliminar el registro?')
-        if opcion is True:
-            valor = del_tree.selection()
-            item = del_tree.item(valor)
-            mi_id = item['text']
-
-            data = (mi_id,)
-            sql = "DELETE FROM produccion WHERE id = ?;"
-            cursor.execute(sql, data)
-            connection.commit()
-            del_tree.delete(valor)
-
-            global label_aviso_del
-            label_aviso_del = ttk.Label(text='Registro Eliminado', background= '#FF413E', foreground= 'white')
-            label_aviso_del.grid(row = 1, column=0, columnspan=6, sticky='E', pady=20)
-        else:
-            pass
+        return del_tree
     else:
-        messagebox.showwarning('Información erronea. Seleccion', 'Debe seleccionar un registro para eliminarlo.')
+        return 'No Seleccionado'
+        
+def eliminar_registro(del_tree):
+    
+    valor = del_tree.selection()
+    item = del_tree.item(valor)
+    mi_id = item['text']
 
-def limpiar():
-    """Limpia los entry """
-    fecha_input.delete(0,'end')
-    modelo_input.delete(0,'end')
-    cantidad_input.delete(0,'end')
-    if 'label_aviso' in globals():
-        label_aviso.grid_forget()
-        label_aviso_mod.grid_forget()
-        label_aviso_del.grid_forget()
+    data = (mi_id,)
+    sql = "DELETE FROM produccion WHERE id = ?;"
+    cursor.execute(sql, data)
+    connection.commit()
+    del_tree.delete(valor)
+
+        
+        #Esto lo veo despues
+        #global label_aviso_del
+        #label_aviso_del = ttk.Label(text='Registro Eliminado', background= '#FF413E', foreground= 'white')
+        #label_aviso_del.grid(row = 1, column=0, columnspan=6, sticky='E', pady=20)
+   
+
+
 
 def actualizar_tree(mitreeview):
     """Actualiza el treeview con la consulta de la BD"""
@@ -223,5 +220,8 @@ def el_grafico(ventana):
     ax.set_title('Producción Diaria')
 
     canvas = FigureCanvasTkAgg(fig, ventana)
+    print('canvas')
     canvas.draw()
+    print('draw')
     canvas.get_tk_widget().grid(row=3, column=8, columnspan=80, rowspan=15, padx=15, pady=15)
+    print('grid')

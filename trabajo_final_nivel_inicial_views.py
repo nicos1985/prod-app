@@ -13,7 +13,14 @@ cantidades producidas.
     
 import tkinter as tk
 from tkinter import ttk, messagebox
-import trabajo_final_niv_inicia_metodos as met
+from trabajo_final_niv_inicia_metodos import alta_registro
+from trabajo_final_niv_inicia_metodos import modificar_registro
+from trabajo_final_niv_inicia_metodos import guardar_registro
+from trabajo_final_niv_inicia_metodos import exportar_registros
+from trabajo_final_niv_inicia_metodos import eliminar_registro
+from trabajo_final_niv_inicia_metodos import el_grafico
+from trabajo_final_niv_inicia_metodos import desea_eliminar
+from trabajo_final_niv_inicia_metodos import actualizar_tree
 
 
 ########################################### Vistas  ##################################
@@ -87,13 +94,13 @@ cantidad_input = ttk.Entry(ventana, textvariable=var_cantidad,
 cantidad_input.grid(row=5, column=2, columnspan=4, pady=7)
 
 
-
-
  # Botones
 
 def alta_reg_vista(fecha_v, modelo_v, cantidad_v, tree_v):
-    retorno = met.alta_registro(fecha_v, modelo_v, cantidad_v, tree_v)
-    messagebox.showinfo(retorno)
+    retorno = alta_registro(fecha_v, modelo_v, cantidad_v, tree_v)
+    print(retorno)
+    if retorno is not None:
+        messagebox.showinfo(retorno[0],retorno[1])
 
 boton_alta = tk.Button(ventana,text="Alta Registro" , 
 command=lambda:alta_reg_vista(var_fecha, var_modelo, var_cantidad, tree),
@@ -103,7 +110,13 @@ font=('Roboto', 12))
 boton_alta.grid(row=6, column=1, pady=7, padx=7)
 
 def guardar_reg_vista(fecha_v, modelo_v, cantidad_v, tree_v):
-    
+    retorno = guardar_registro(fecha_v, modelo_v, cantidad_v, tree_v)
+    print(f'retorno_guardar: {retorno}')
+    if retorno == 'guardado':
+        boton_guardar.grid_forget()
+        boton_modificar.grid(row=6, column=2, pady=7, padx=7)
+    else:
+        messagebox.showwarning('Información erronea. Campo Fecha', 'El campo fecha debe ser del modelo dd/mm/aaaa.')
 
 
 boton_guardar = tk.Button(ventana,text="Guardar Registro", 
@@ -120,22 +133,57 @@ boton_exportar = tk.Button(ventana,text="Exportar Registros",
                            font=('Roboto', 12))
 boton_exportar.grid(row=6, column=3, pady=7, padx=7)
 
+def eliminar_reg_v(tree_v):
+    seleccionado = desea_eliminar(tree_v)
+    opcion = messagebox.askyesno('Desea continuar?', '¿Está seguro de eliminar el registro?')
+    print(f'opcion = {opcion}')
+
+    if seleccionado != 'No Seleccionado':
+        print(f'seleccionado: {seleccionado}')
+        if opcion == True:
+            eliminar_registro(seleccionado)
+            print(f'registro eliminado')
+    else:
+        messagebox.showwarning('Información erronea. Seleccion', 'Debe seleccionar un registro para eliminarlo.')
+
+
 boton_eliminar = tk.Button(ventana,text="Eliminar Registro", 
-                           command=lambda:eliminar_registro(tree),
+                           command=lambda:eliminar_reg_v(tree),
                            bg='#093B92', 
                            fg='white', 
                            font=('Roboto', 12))
 boton_eliminar.grid(row=6, column=4, pady=7, padx=7, sticky="E")
 
+def limpiar_v():
+
+    fecha_input.delete(0,'end')
+    modelo_input.delete(0,'end')
+    cantidad_input.delete(0,'end')
+    
+
 boton_limpiar = tk.Button(ventana,text="Limpiar", 
-                           command=limpiar, 
+                           command=limpiar_v, 
                            bg='#093B92', 
                            fg='white', 
                            font=('Roboto', 12))
 boton_limpiar.grid(row=3, column=5)
 
+def modificar_reg_v(tree_v):
+    retorno = modificar_registro(tree_v)
+    print(f'retorno_modificar: {retorno}')
+    if retorno is not None:
+        boton_modificar.grid_forget()
+        boton_guardar.grid(row=6, column=2, pady=7, padx=7)
+        fecha_input.insert(0,retorno[1])
+        modelo_input.insert(0,retorno[2])
+        cantidad_input.delete(0,'end')
+        cantidad_input.insert(0,retorno[3])
+    else:
+        messagebox.showinfo('Información erronea. Seleccion', 'Debe seleccionar un registro para modificarlo.')
+
+
 boton_modificar = tk.Button(ventana,text="Modificar registro", 
-                           command=lambda:modificar_registro(tree), 
+                           command=lambda:modificar_reg_v(tree), 
                            bg='#093B92', 
                            fg='white', 
                            font=('Roboto', 12))
